@@ -16,9 +16,19 @@ export function addSlide(doc, opts = {}) {
   const next = clone(doc);
   const id = opts.id ?? createId();
 
-  const masterId = opts.masterId ?? next.masters[0]?.id ?? 'master-default';
-  const master = next.masters.find(m => m?.id === masterId) ?? next.masters[0];
-  const layoutId = opts.layoutId ?? master?.layouts?.[0]?.id ?? 'layout-title';
+  const requestedMaster = typeof opts.masterId === 'string' && opts.masterId
+    ? next.masters.find(m => m?.id === opts.masterId)
+    : null;
+  const master = requestedMaster ?? next.masters[0];
+
+  const masterId = master?.id ?? 'master-default';
+
+  const requestedLayout = typeof opts.layoutId === 'string' && opts.layoutId && Array.isArray(master?.layouts)
+    ? master.layouts.find(l => l?.id === opts.layoutId)
+    : null;
+  const layout = requestedLayout ?? master?.layouts?.[0];
+
+  const layoutId = layout?.id ?? 'layout-title';
 
   next.slides.push({
     id,
