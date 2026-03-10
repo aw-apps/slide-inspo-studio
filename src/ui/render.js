@@ -1,3 +1,5 @@
+import { attachCanvasInteractions } from '../editor/interactions.js';
+
 function el(tag, attrs = {}, children = []) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -23,83 +25,126 @@ export function renderSlidesList({ doc, selectedSlideId, onSelect }) {
   }
 }
 
-export function renderStage({ doc, selectedSlideId, selectedElementId, onSelectElement, onTextEdit }) {
+const SLIDE_W = 960;
+const SLIDE_H = 540;
+
+export function renderStage({
+  doc,
+  selectedSlideId,
+  getSelectedElementIds,
+  setSelectedElementIds,
+  commitElementPatches,
+  onTextEdit,
+}) {
   const stage = document.getElementById('stage');
   stage.innerHTML = '';
   const slide = doc.slides.find(s => s.id === selectedSlideId);
-  const canvas = el('div', { class: 'slide-canvas' });
+
+  const canvas = el('div', { class: 'slide-canvas', tabindex: '0' });
   if (slide) {
+    const selected = new Set(getSelectedElementIds());
+
     for (const e of slide.elements) {
-      const node = renderElement(e, e.id === selectedElementId);
-      node.addEventListener('mousedown', (ev) => { ev.stopPropagation(); onSelectElement(e.id); });
+      const node = renderElement(e, selected.has(e.id));
+
       if (e.type === 'text') {
-        node.addEventListener('dblclick', () => {
+        node.addEventListener('dblclick', (ev) => {
+          ev.stopPropagation();
           node.contentEditable = 'true';
           node.focus();
         });
         node.addEventListener('blur', () => {
+          if (node.contentEditable !== 'true') return;
           node.contentEditable = 'false';
           const nextText = node.textContent ?? '';
           if (typeof onTextEdit === 'function' && nextText !== e.text) onTextEdit(e.id, nextText);
         });
       }
+
       canvas.append(node);
     }
+
+    attachCanvasInteractions({
+      canvas,
+      slide,
+      selectedIds: getSelectedElementIds,
+      setSelectedIds: setSelectedElementIds,
+      commitPatches: commitElementPatches,
+      slideW: SLIDE_W,
+      slideH: SLIDE_H,
+    });
   }
-  canvas.addEventListener('mousedown', () => onSelectElement(null));
+
   stage.append(canvas);
 }
 
 function renderElement(e, selected) {
+  const rot = Number.isFinite(e.rotation) ? e.rotation : 0;
+
   const base = {
     class: `el ${selected ? 'selected' : ''}`,
-    style: `left:${e.x}px;top:${e.y}px;width:${e.w}px;height:${e.h}px;`,
+    'data-element-id': e.id,
+    style: `left:${e.x}px;top:${e.y}px;width:${e.w}px;height:${e.h}px;transform:rotate(${rot}deg);transform-origin:50% 50%;`,
   };
+
   if (e.type === 'rect') {
-    return el('div', { ...base, style: base.style + `background:${e.fill};border-radius:${e.radius ?? 10}px;` });
+    return el('div', { ...base, style: base.style + `background:${e.fill};border-radius:${e.radius ?? 10}px;cursor:move;` });
   }
   if (e.type === 'text') {
     return el('div', {
       ...base,
-      style: base.style + `font-size:${e.fontSize}px;color:${e.color};padding:6px;cursor:text;white-space:pre-wrap;`,
+      style: base.style + `font-size:${e.fontSize}px;color:${e.color};padding:6px;cursor:text;white-space:pre-wrap;user-select:text;`,
     }, [e.text]);
   }
   return el('div', base);
 }
 
-export function renderLayers({ doc, selectedSlideId, selectedElementId, onSelectElement, onReorder }) {
+export function renderLayers({ doc, selectedSlideId, selectedElementIds, onSelectElement, onReorder }) {
   const root = document.getElementById('layers');
   root.innerHTML = '';
   const slide = doc.slides.find(s => s.id === selectedSlideId);
   if (!slide) return;
 
+  const selected = new Set(selectedElementIds);
+
   // Display top-most first.
   for (const e of [...slide.elements].reverse()) {
-    const up = el('button', { class: 'layer-btn', title: 'Bring forward' }, ['▲']);
-    const down = el('button', { class: 'layer-btn', title: 'Send backward' }, ['▼']);
+    const up = el('button', { class: 'layer-btn', title: 'Bring forward' }, ['^']);
+    const down = el('button', { class: 'layer-btn', title: 'Send backward' }, ['v']);
 
     up.addEventListener('click', (ev) => { ev.stopPropagation(); onReorder?.(e.id, 'forward'); });
     down.addEventListener('click', (ev) => { ev.stopPropagation(); onReorder?.(e.id, 'backward'); });
 
-    const row = el('div', { class: `thumb ${e.id === selectedElementId ? 'active' : ''}` }, [
+    const row = el('div', { class: `thumb ${selected.has(e.id) ? 'active' : ''}` }, [
       el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;' }, [
-        el('div', {}, [`${e.type} • ${e.id.slice(0, 6)}`]),
+        el('div', {}, [`${e.type} - ${e.id.slice(0, 6)}`]),
         el('div', { style: 'display:flex;gap:6px;' }, [up, down]),
       ]),
     ]);
 
-    row.addEventListener('click', () => onSelectElement(e.id));
+    row.addEventListener('click', (ev) => onSelectElement(e.id, { toggle: ev.shiftKey || ev.metaKey || ev.ctrlKey }));
     root.append(row);
   }
 }
 
-export function renderInspector({ doc, selectedSlideId, selectedElementId, onPatchElement }) {
+export function renderInspector({ doc, selectedSlideId, selectedElementIds, onPatchElement }) {
   const root = document.getElementById('inspector');
   root.innerHTML = '';
+
   const slide = doc.slides.find(s => s.id === selectedSlideId);
-  const element = slide?.elements.find(e => e.id === selectedElementId);
+  const ids = selectedElementIds || [];
+
+  if (!slide || ids.length !== 1) {
+    const msg = ids.length
+      ? `${ids.length} selected (group move supported)`
+      : 'Select one element to edit properties';
+    root.append(el('div', { class: 'muted' }, [msg]));
+    return;
+  }
+
+  const element = slide.elements.find(e => e.id === ids[0]);
   if (!element) {
-    root.append(el('div', { class: 'muted' }, ['選取一個元素以編輯屬性']));
+    root.append(el('div', { class: 'muted' }, ['Select one element to edit properties']));
     return;
   }
 
@@ -107,6 +152,7 @@ export function renderInspector({ doc, selectedSlideId, selectedElementId, onPat
   root.append(field('y', element.y, (v) => onPatchElement?.({ y: v })));
   root.append(field('w', element.w, (v) => onPatchElement?.({ w: v })));
   root.append(field('h', element.h, (v) => onPatchElement?.({ h: v })));
+  root.append(field('rotation', element.rotation ?? 0, (v) => onPatchElement?.({ rotation: v })));
 
   if (element.type === 'rect') {
     root.append(colorField('fill', element.fill, (v) => onPatchElement?.({ fill: v })));
