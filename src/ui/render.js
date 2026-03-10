@@ -25,8 +25,14 @@ export function renderSlidesList({ doc, selectedSlideId, onSelect }) {
   }
 }
 
-const SLIDE_W = 960;
-const SLIDE_H = 540;
+function getPageSize(doc) {
+  const w = Number(doc?.meta?.page?.w);
+  const h = Number(doc?.meta?.page?.h);
+  return {
+    w: Number.isFinite(w) && w > 0 ? w : 960,
+    h: Number.isFinite(h) && h > 0 ? h : 540,
+  };
+}
 
 export function renderStage({
   doc,
@@ -40,7 +46,30 @@ export function renderStage({
   stage.innerHTML = '';
   const slide = doc.slides.find(s => s.id === selectedSlideId);
 
+  const page = getPageSize(doc);
+
+  const canvasWrap = el('div', { class: 'slide-canvas-wrap' });
   const canvas = el('div', { class: 'slide-canvas', tabindex: '0' });
+
+  // Logical canvas size (used by editor interactions).
+  canvas.style.width = `${page.w}px`;
+  canvas.style.height = `${page.h}px`;
+
+  // Slide background (best-effort from PPTX).
+  canvas.style.background = slide?.bg?.color || '#fff';
+
+  // Fit-to-view scaling.
+  // Note: interactions account for transform scaling via getCanvasPoint().
+  const availW = Math.max(1, stage.clientWidth);
+  const availH = Math.max(1, stage.clientHeight);
+  const scale = Math.min(1, availW / page.w, availH / page.h);
+
+  canvas.style.transform = `scale(${scale})`;
+  canvas.style.transformOrigin = 'top left';
+
+  canvasWrap.style.width = `${page.w * scale}px`;
+  canvasWrap.style.height = `${page.h * scale}px`;
+
   if (slide) {
     const selected = new Set(getSelectedElementIds());
 
@@ -70,12 +99,13 @@ export function renderStage({
       selectedIds: getSelectedElementIds,
       setSelectedIds: setSelectedElementIds,
       commitPatches: commitElementPatches,
-      slideW: SLIDE_W,
-      slideH: SLIDE_H,
+      slideW: page.w,
+      slideH: page.h,
     });
   }
 
-  stage.append(canvas);
+  canvasWrap.append(canvas);
+  stage.append(canvasWrap);
 }
 
 function renderElement(e, selected) {
@@ -88,12 +118,14 @@ function renderElement(e, selected) {
   };
 
   if (e.type === 'rect') {
-    return el('div', { ...base, style: base.style + `background:${e.fill};border-radius:${e.radius ?? 10}px;cursor:move;` });
+    const r = Number.isFinite(e.radius) ? e.radius : 0;
+    return el('div', { ...base, style: base.style + `background:${e.fill};border-radius:${r}px;cursor:move;` });
   }
   if (e.type === 'text') {
+    const align = e.align || 'left';
     return el('div', {
       ...base,
-      style: base.style + `font-size:${e.fontSize}px;color:${e.color};padding:6px;cursor:text;white-space:pre-wrap;user-select:text;`,
+      style: base.style + `font-size:${e.fontSize}px;color:${e.color};padding:6px;cursor:text;white-space:pre-wrap;user-select:text;text-align:${align};`,
     }, [e.text]);
   }
   return el('div', base);
@@ -156,7 +188,7 @@ export function renderInspector({ doc, selectedSlideId, selectedElementIds, onPa
 
   if (element.type === 'rect') {
     root.append(colorField('fill', element.fill, (v) => onPatchElement?.({ fill: v })));
-    root.append(field('radius', element.radius ?? 10, (v) => onPatchElement?.({ radius: v })));
+    root.append(field('radius', element.radius ?? 0, (v) => onPatchElement?.({ radius: v })));
   }
   if (element.type === 'text') {
     root.append(textField('text', element.text, (v) => onPatchElement?.({ text: v })));
@@ -203,7 +235,7 @@ function colorField(label, value, onChange) {
   l.className = 'muted';
   const input = document.createElement('input');
   input.type = 'color';
-  input.value = value || '#000000';
+  input.value = typeof value === 'string' && value.startsWith('#') ? value : '#000000';
   input.addEventListener('input', () => onChange(input.value));
   wrap.append(l, input);
   return wrap;

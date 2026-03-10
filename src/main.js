@@ -15,6 +15,7 @@ import {
 
 import { renderSlidesList, renderStage, renderLayers, renderInspector } from './ui/render.js';
 import { saveDocLocal, loadDocLocal, exportDocJson, importDocJson } from './persistence/local.js';
+import { importPptxFile } from './pptx/import/index.js';
 
 let state = {
   doc: loadDocLocal() ?? createEmptyDoc(),
@@ -169,6 +170,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
 });
 
 document.getElementById('btn-export').addEventListener('click', () => exportDocJson(state.doc));
+
 document.getElementById('file-import').addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
@@ -181,6 +183,27 @@ document.getElementById('file-import').addEventListener('change', async (e) => {
   rerender();
   setTab('editor');
   e.target.value = '';
+});
+
+document.getElementById('file-import-pptx').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  try {
+    const doc = await importPptxFile(file);
+    state.doc = doc;
+    state.history = createHistory({ limit: 200 });
+    state.selectedSlideId = null;
+    state.selectedElementIds = [];
+    saveDocLocal(state.doc);
+    rerender();
+    setTab('editor');
+  } catch (err) {
+    console.error(err);
+    alert(`PPTX import failed: ${err?.message || String(err)}`);
+  } finally {
+    e.target.value = '';
+  }
 });
 
 document.getElementById('btn-add-slide').addEventListener('click', () => {
