@@ -1,6 +1,11 @@
 export function getCanvasPoint(canvas, clientX, clientY) {
   const r = canvas.getBoundingClientRect();
-  return { x: clientX - r.left, y: clientY - r.top };
+
+  // If the canvas is scaled via CSS transform, adjust from viewport pixels to canvas logical pixels.
+  const scaleX = canvas.offsetWidth ? canvas.offsetWidth / r.width : 1;
+  const scaleY = canvas.offsetHeight ? canvas.offsetHeight / r.height : 1;
+
+  return { x: (clientX - r.left) * scaleX, y: (clientY - r.top) * scaleY };
 }
 
 export function applyElementStyle(node, geom) {

@@ -12,6 +12,7 @@
 .stage-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
 .stage-toolbar{padding:10px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center}
 .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:18px}
+.slide-canvas-wrap{position:relative}
 .slide-canvas{width:960px;height:540px;background:#fff;border-radius:10px;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.4);touch-action:none}
 .el{position:absolute;border:1px dashed transparent;touch-action:none} .el.selected{border-color:#2b4cff}
 .thumb{background:#0f1630;border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer} .thumb.active{border-color:var(--accent)}
