@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Slide Inspo Studio</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">Slide Inspo Studio</div>
+      <nav class="nav">
+        <button id="tab-inspo" class="tab active">靈感</button>
+        <button id="tab-editor" class="tab">編輯器</button>
+      </nav>
+      <div class="actions">
+        <button id="btn-new">新文件</button>
+        <button id="btn-save">存到本機</button>
+        <button id="btn-export">匯出 JSON</button>
+        <label class="file">匯入 JSON <input id="file-import" type="file" accept="application/json" /></label>
+      </div>
+    </header>
+
+    <main class="main">
+      <section id="view-inspo" class="view">
+        <div class="panel">
+          <h2>靈感牆（骨架）</h2>
+          <p>下一步：新增卡片、標籤、搜尋、收藏、匯入/匯出。</p>
+        </div>
+      </section>
+
+      <section id="view-editor" class="view hidden">
+        <div class="editor">
+          <aside class="sidebar">
+            <h3>投影片</h3>
+            <div id="slides" class="slides"></div>
+            <button id="btn-add-slide">新增投影片</button>
+            <hr />
+            <h3>元素</h3>
+            <div id="layers" class="layers"></div>
+          </aside>
+
+          <div class="stage-wrap">
+            <div class="stage-toolbar">
+              <button id="btn-add-text">文字</button>
+              <button id="btn-add-rect">矩形</button>
+            </div>
+            <div id="stage" class="stage"></div>
+          </div>
+
+          <aside class="inspector">
+            <h3>屬性</h3>
+            <div id="inspector" class="inspector-body">
+              <div class="muted">選取一個元素以編輯屬性</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

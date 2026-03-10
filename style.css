@@ -1,0 +1,17 @@
+:root{--bg:#0b1020;--panel:#121a33;--text:#e9ecff;--muted:#aeb5e6;--accent:#7aa2ff;--border:#263055;--shadow:0 10px 30px rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:var(--bg); color:var(--text)}
+.topbar{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(11,16,32,.92);backdrop-filter:blur(8px)}
+.brand{font-weight:700;letter-spacing:.2px}
+.nav{display:flex;gap:8px;align-items:center} .tab{background:transparent;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer} .tab.active{border-color:var(--accent)}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap} button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
+.file{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);padding:8px 10px;border-radius:10px;cursor:pointer} .file input{display:none}
+.main{padding:14px} .view.hidden{display:none}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow)} .muted{color:var(--muted)}
+.editor{display:grid;grid-template-columns:260px 1fr 280px;gap:12px;min-height:calc(100vh - 86px)}
+.sidebar,.inspector{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+.stage-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.stage-toolbar{padding:10px;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:18px}
+.slide-canvas{width:960px;height:540px;background:#fff;border-radius:10px;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.el{position:absolute;border:1px dashed transparent} .el.selected{border-color:#2b4cff}
+.thumb{background:#0f1630;border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer} .thumb.active{border-color:var(--accent)}
