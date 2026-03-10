@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "Sample Doc",
+    "createdAt": 1700000000000,
+    "updatedAt": 1700000000000
+  },
+  "masters": [
+    {
+      "id": "master-default",
+      "name": "Default Master",
+      "layouts": [
+        { "id": "layout-title", "name": "Title", "placeholders": [] },
+        { "id": "layout-title-content", "name": "Title + Content", "placeholders": [] }
+      ],
+      "theme": {
+        "fonts": { "body": "Inter, system-ui", "heading": "Inter, system-ui" },
+        "colors": { "text": "#111111", "bg": "#ffffff", "accent": "#2b4cff" }
+      }
+    }
+  ],
+  "slides": [
+    {
+      "id": "slide-1",
+      "name": "Slide 1",
+      "masterId": "master-default",
+      "layoutId": "layout-title",
+      "elements": [
+        {
+          "id": "el-title",
+          "type": "text",
+          "x": 80,
+          "y": 90,
+          "w": 560,
+          "h": 70,
+          "text": "Slide Inspo Studio",
+          "fontSize": 44,
+          "color": "#111111"
+        },
+        {
+          "id": "el-accent",
+          "type": "rect",
+          "x": 80,
+          "y": 180,
+          "w": 240,
+          "h": 16,
+          "fill": "#2b4cff",
+          "radius": 8
+        }
+      ]
+    },
+    {
+      "id": "slide-2",
+      "name": "Slide 2",
+      "masterId": "master-default",
+      "layoutId": "layout-title-content",
+      "elements": [
+        {
+          "id": "el-box",
+          "type": "rect",
+          "x": 120,
+          "y": 160,
+          "w": 440,
+          "h": 240,
+          "fill": "#e9ecff",
+          "radius": 12
+        },
+        {
+          "id": "el-body",
+          "type": "text",
+          "x": 150,
+          "y": 190,
+          "w": 380,
+          "h": 180,
+          "text": "- Internal JSON schema\n- Pure operations\n- Layer reorder\n- JSON export/import",
+          "fontSize": 24,
+          "color": "#111111"
+        }
+      ]
+    }
+  ],
+  "assets": []
+}

@@ -2,6 +2,7 @@ function el(tag, attrs = {}, children = []) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === 'class') n.className = v;
+    else if (k === 'style') n.setAttribute('style', v);
     else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2).toLowerCase(), v);
     else n.setAttribute(k, v);
   }
@@ -22,7 +23,7 @@ export function renderSlidesList({ doc, selectedSlideId, onSelect }) {
   }
 }
 
-export function renderStage({ doc, selectedSlideId, selectedElementId, onSelectElement }) {
+export function renderStage({ doc, selectedSlideId, selectedElementId, onSelectElement, onTextEdit }) {
   const stage = document.getElementById('stage');
   stage.innerHTML = '';
   const slide = doc.slides.find(s => s.id === selectedSlideId);
@@ -36,7 +37,11 @@ export function renderStage({ doc, selectedSlideId, selectedElementId, onSelectE
           node.contentEditable = 'true';
           node.focus();
         });
-        node.addEventListener('blur', () => { node.contentEditable = 'false'; });
+        node.addEventListener('blur', () => {
+          node.contentEditable = 'false';
+          const nextText = node.textContent ?? '';
+          if (typeof onTextEdit === 'function' && nextText !== e.text) onTextEdit(e.id, nextText);
+        });
       }
       canvas.append(node);
     }
@@ -51,32 +56,44 @@ function renderElement(e, selected) {
     style: `left:${e.x}px;top:${e.y}px;width:${e.w}px;height:${e.h}px;`,
   };
   if (e.type === 'rect') {
-    return el('div', { ...base, style: base.style + `background:${e.fill};border-radius:10px;` });
+    return el('div', { ...base, style: base.style + `background:${e.fill};border-radius:${e.radius ?? 10}px;` });
   }
   if (e.type === 'text') {
     return el('div', {
       ...base,
-      style: base.style + `font-size:${e.fontSize}px;color:${e.color};padding:6px;cursor:text;`,
+      style: base.style + `font-size:${e.fontSize}px;color:${e.color};padding:6px;cursor:text;white-space:pre-wrap;`,
     }, [e.text]);
   }
   return el('div', base);
 }
 
-export function renderLayers({ doc, selectedSlideId, selectedElementId, onSelectElement }) {
+export function renderLayers({ doc, selectedSlideId, selectedElementId, onSelectElement, onReorder }) {
   const root = document.getElementById('layers');
   root.innerHTML = '';
   const slide = doc.slides.find(s => s.id === selectedSlideId);
   if (!slide) return;
+
+  // Display top-most first.
   for (const e of [...slide.elements].reverse()) {
+    const up = el('button', { class: 'layer-btn', title: 'Bring forward' }, ['▲']);
+    const down = el('button', { class: 'layer-btn', title: 'Send backward' }, ['▼']);
+
+    up.addEventListener('click', (ev) => { ev.stopPropagation(); onReorder?.(e.id, 'forward'); });
+    down.addEventListener('click', (ev) => { ev.stopPropagation(); onReorder?.(e.id, 'backward'); });
+
     const row = el('div', { class: `thumb ${e.id === selectedElementId ? 'active' : ''}` }, [
-      el('div', {}, [`${e.type} • ${e.id.slice(0, 6)}`]),
+      el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;' }, [
+        el('div', {}, [`${e.type} • ${e.id.slice(0, 6)}`]),
+        el('div', { style: 'display:flex;gap:6px;' }, [up, down]),
+      ]),
     ]);
+
     row.addEventListener('click', () => onSelectElement(e.id));
     root.append(row);
   }
 }
 
-export function renderInspector({ doc, selectedSlideId, selectedElementId, onUpdateDoc }) {
+export function renderInspector({ doc, selectedSlideId, selectedElementId, onPatchElement }) {
   const root = document.getElementById('inspector');
   root.innerHTML = '';
   const slide = doc.slides.find(s => s.id === selectedSlideId);
@@ -86,27 +103,19 @@ export function renderInspector({ doc, selectedSlideId, selectedElementId, onUpd
     return;
   }
 
-  root.append(field('x', element.x, (v) => patch({ x: v })));
-  root.append(field('y', element.y, (v) => patch({ y: v })));
-  root.append(field('w', element.w, (v) => patch({ w: v })));
-  root.append(field('h', element.h, (v) => patch({ h: v })));
+  root.append(field('x', element.x, (v) => onPatchElement?.({ x: v })));
+  root.append(field('y', element.y, (v) => onPatchElement?.({ y: v })));
+  root.append(field('w', element.w, (v) => onPatchElement?.({ w: v })));
+  root.append(field('h', element.h, (v) => onPatchElement?.({ h: v })));
 
   if (element.type === 'rect') {
-    root.append(colorField('fill', element.fill, (v) => patch({ fill: v })));
+    root.append(colorField('fill', element.fill, (v) => onPatchElement?.({ fill: v })));
+    root.append(field('radius', element.radius ?? 10, (v) => onPatchElement?.({ radius: v })));
   }
   if (element.type === 'text') {
-    root.append(textField('text', element.text, (v) => patch({ text: v })));
-    root.append(field('fontSize', element.fontSize, (v) => patch({ fontSize: v })));
-    root.append(colorField('color', element.color, (v) => patch({ color: v })));
-  }
-
-  function patch(delta) {
-    const next = structuredClone(doc);
-    const s = next.slides.find(s => s.id === selectedSlideId);
-    const e = s?.elements.find(e => e.id === selectedElementId);
-    if (!e) return;
-    Object.assign(e, delta);
-    onUpdateDoc(next);
+    root.append(textField('text', element.text, (v) => onPatchElement?.({ text: v })));
+    root.append(field('fontSize', element.fontSize, (v) => onPatchElement?.({ fontSize: v })));
+    root.append(colorField('color', element.color, (v) => onPatchElement?.({ color: v })));
   }
 }
 
