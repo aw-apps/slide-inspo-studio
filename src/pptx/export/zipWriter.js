@@ -25,6 +25,11 @@ function concat(chunks) {
   return out;
 }
 
+// DOS date/time fields in ZIP headers must be a valid DOS timestamp.
+// Using 0 here can show up as an invalid month/day (e.g. 1980-00-00) and can trip strict consumers.
+const DOS_TIME_00_00_00 = 0;
+const DOS_DATE_1980_01_01 = (1 << 5) | 1;
+
 const CRC_TABLE = (() => {
   /** @type {number[]} */
   const table = new Array(256);
@@ -69,8 +74,8 @@ export class ZipWriter {
       u16le(20), // version needed
       u16le(0), // flags
       u16le(0), // method = store
-      u16le(0), // mod time
-      u16le(0), // mod date
+      u16le(DOS_TIME_00_00_00),
+      u16le(DOS_DATE_1980_01_01),
       u32le(crc),
       u32le(compSize),
       u32le(uncompSize),
@@ -99,8 +104,8 @@ export class ZipWriter {
         u16le(20), // version needed
         u16le(0), // flags
         u16le(0), // method
-        u16le(0), // mod time
-        u16le(0), // mod date
+        u16le(DOS_TIME_00_00_00),
+        u16le(DOS_DATE_1980_01_01),
         u32le(f.crc),
         u32le(f.data.length),
         u32le(f.data.length),
