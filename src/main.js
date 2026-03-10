@@ -1,4 +1,12 @@
-import { createEmptyDoc } from './model/doc.js';
+import {
+  createEmptyDoc,
+  addSlide,
+  addTextElement,
+  addRectElement,
+  updateElement,
+  reorderLayer,
+} from './core/index.mjs';
+
 import { renderSlidesList, renderStage, renderLayers, renderInspector } from './ui/render.js';
 import { saveDocLocal, loadDocLocal, exportDocJson, importDocJson } from './persistence/local.js';
 
@@ -9,33 +17,59 @@ let state = {
 };
 
 function ensureSelection() {
-  if (!state.selectedSlideId) state.selectedSlideId = state.doc.slides[0]?.id ?? null;
+  const slideExists = state.doc.slides.some(s => s.id === state.selectedSlideId);
+  if (!state.selectedSlideId || !slideExists) state.selectedSlideId = state.doc.slides[0]?.id ?? null;
+
+  const slide = state.doc.slides.find(s => s.id === state.selectedSlideId);
+  const elExists = !!slide?.elements.some(e => e.id === state.selectedElementId);
+  if (!elExists) state.selectedElementId = null;
+}
+
+function commitDoc(nextDoc) {
+  state.doc = nextDoc;
+  saveDocLocal(state.doc);
+  rerender();
 }
 
 function rerender() {
   ensureSelection();
+
   renderSlidesList({
     doc: state.doc,
     selectedSlideId: state.selectedSlideId,
     onSelect: (id) => { state.selectedSlideId = id; state.selectedElementId = null; rerender(); },
   });
+
   renderStage({
     doc: state.doc,
     selectedSlideId: state.selectedSlideId,
     selectedElementId: state.selectedElementId,
     onSelectElement: (id) => { state.selectedElementId = id; rerender(); },
+    onTextEdit: (elementId, text) => {
+      const { doc } = updateElement(state.doc, state.selectedSlideId, elementId, { text });
+      commitDoc(doc);
+    },
   });
+
   renderLayers({
     doc: state.doc,
     selectedSlideId: state.selectedSlideId,
     selectedElementId: state.selectedElementId,
     onSelectElement: (id) => { state.selectedElementId = id; rerender(); },
+    onReorder: (elementId, action) => {
+      const { doc } = reorderLayer(state.doc, state.selectedSlideId, elementId, action);
+      commitDoc(doc);
+    },
   });
+
   renderInspector({
     doc: state.doc,
     selectedSlideId: state.selectedSlideId,
     selectedElementId: state.selectedElementId,
-    onUpdateDoc: (nextDoc) => { state.doc = nextDoc; saveDocLocal(state.doc); rerender(); },
+    onPatchElement: (patch) => {
+      const { doc } = updateElement(state.doc, state.selectedSlideId, state.selectedElementId, patch);
+      commitDoc(doc);
+    },
   });
 }
 
@@ -63,7 +97,6 @@ document.getElementById('btn-save').addEventListener('click', () => {
   alert('已儲存到本機（localStorage）');
 });
 
-
 document.getElementById('btn-export').addEventListener('click', () => exportDocJson(state.doc));
 document.getElementById('file-import').addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
@@ -79,35 +112,26 @@ document.getElementById('file-import').addEventListener('change', async (e) => {
 });
 
 document.getElementById('btn-add-slide').addEventListener('click', () => {
-  const next = structuredClone(state.doc);
-  next.slides.push({ id: crypto.randomUUID(), name: `Slide ${next.slides.length + 1}`, elements: [] });
-  state.doc = next;
-  state.selectedSlideId = next.slides.at(-1).id;
+  const { doc, slideId } = addSlide(state.doc);
+  state.doc = doc;
+  state.selectedSlideId = slideId;
   state.selectedElementId = null;
   saveDocLocal(state.doc);
   rerender();
 });
 
 document.getElementById('btn-add-text').addEventListener('click', () => {
-  const next = structuredClone(state.doc);
-  const slide = next.slides.find(s => s.id === state.selectedSlideId);
-  if (!slide) return;
-  const el = { id: crypto.randomUUID(), type: 'text', x: 80, y: 80, w: 320, h: 60, text: '雙擊編輯文字', fontSize: 28, color: '#111' };
-  slide.elements.push(el);
-  state.doc = next;
-  state.selectedElementId = el.id;
+  const { doc, elementId } = addTextElement(state.doc, state.selectedSlideId);
+  state.doc = doc;
+  state.selectedElementId = elementId;
   saveDocLocal(state.doc);
   rerender();
 });
 
 document.getElementById('btn-add-rect').addEventListener('click', () => {
-  const next = structuredClone(state.doc);
-  const slide = next.slides.find(s => s.id === state.selectedSlideId);
-  if (!slide) return;
-  const el = { id: crypto.randomUUID(), type: 'rect', x: 120, y: 140, w: 300, h: 180, fill: '#e9ecff' };
-  slide.elements.push(el);
-  state.doc = next;
-  state.selectedElementId = el.id;
+  const { doc, elementId } = addRectElement(state.doc, state.selectedSlideId);
+  state.doc = doc;
+  state.selectedElementId = elementId;
   saveDocLocal(state.doc);
   rerender();
 });
