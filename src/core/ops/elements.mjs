@@ -20,7 +20,7 @@ export function addTextElement(doc, slideId, opts = {}) {
     y: opts.y ?? 80,
     w: opts.w ?? 320,
     h: opts.h ?? 60,
-    text: opts.text ?? '雙擊編輯文字',
+    text: opts.text ?? 'Double-click to edit',
     fontSize: opts.fontSize ?? 28,
     color: opts.color ?? '#111111',
   };
@@ -56,6 +56,22 @@ export function updateElement(doc, slideId, elementId, patch) {
   if (!el) return { doc: next, updated: false };
   Object.assign(el, patch);
   return { doc: next, updated: true };
+}
+
+export function patchElements(doc, slideId, patchesById) {
+  const next = clone(doc);
+  const slide = getSlide(next, slideId);
+  if (!slide) return { doc: next, updated: false, updatedIds: [] };
+
+  const updatedIds = [];
+  for (const [id, patch] of Object.entries(patchesById || {})) {
+    const el = slide.elements.find(e => e.id === id);
+    if (!el) continue;
+    Object.assign(el, patch);
+    updatedIds.push(id);
+  }
+
+  return { doc: next, updated: updatedIds.length > 0, updatedIds };
 }
 
 export function moveElement(doc, slideId, elementId, dx, dy) {
