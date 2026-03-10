@@ -17,6 +17,7 @@ import { renderSlidesList, renderStage, renderLayers, renderInspector } from './
 import { saveDocLocal, loadDocLocal, exportDocJson, importDocJson } from './persistence/local.js';
 import { importPptxFile } from './pptx/import/index.js';
 import { exportPptxFile } from './pptx/export/index.js';
+import { exportForAIFile } from './ai/archive.js';
 
 let state = {
   doc: loadDocLocal() ?? createEmptyDoc(),
@@ -171,6 +172,15 @@ document.getElementById('btn-save').addEventListener('click', () => {
 });
 
 document.getElementById('btn-export').addEventListener('click', () => exportDocJson(state.doc));
+
+document.getElementById('btn-export-ai').addEventListener('click', async () => {
+  try {
+    await exportForAIFile(state.doc);
+  } catch (err) {
+    console.error(err);
+    alert(`AI export failed: ${err?.message || String(err)}`);
+  }
+});
 
 document.getElementById('btn-export-pptx').addEventListener('click', () => {
   try {

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aw-apps.github.io/slide-inspo-studio/ai-export.schema.v1.json",
+  "title": "Slide Inspo Studio AI Export (v1)",
+  "type": "object",
+  "required": ["version", "doc", "templates", "styleTokens", "assets", "slides"],
+  "properties": {
+    "version": { "const": 1 },
+    "doc": {
+      "type": "object",
+      "required": ["title", "page"],
+      "properties": {
+        "title": { "type": "string" },
+        "page": {
+          "type": "object",
+          "required": ["w", "h"],
+          "properties": {
+            "w": { "type": "number" },
+            "h": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "templates": { "type": "object" },
+    "styleTokens": { "type": "object" },
+    "assets": { "type": "array" },
+    "slides": { "type": "array" }
+  },
+  "additionalProperties": true
+}
